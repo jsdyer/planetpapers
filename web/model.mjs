@@ -23,12 +23,12 @@ export function formatNumber(n) {
 export function describe(m) {
   if (!m) return "Not reported";
   const [value, plus, minus, flag] = m;
-  const v = formatNumber(value);
-  if (flag === 1) return "≤ " + v + " (upper limit)";
-  if (flag === -1) return "≥ " + v + " (lower limit)";
-  if (plus === null && minus === null) return v + " (uncertainty unreported)";
-  if (plus !== null && minus !== null && plus === -minus) return v + " ± " + formatNumber(plus);
-  return v + " +" + (plus === null ? "?" : formatNumber(plus)) + " / −" + (minus === null ? "?" : formatNumber(Math.abs(minus)));
+  const prefix = flag === 1 ? "< " : flag === -1 ? "> " : "";
+  const suffix = flag === 1 ? " (upper limit)" : flag === -1 ? " (lower limit)" : "";
+  const v = prefix + formatNumber(value);
+  if (plus === null && minus === null) return v + (suffix || " (uncertainty unreported)");
+  if (plus !== null && minus !== null && plus === -minus) return v + " ± " + formatNumber(plus) + suffix;
+  return v + " +" + (plus === null ? "?" : formatNumber(plus)) + " / −" + (minus === null ? "?" : formatNumber(Math.abs(minus))) + suffix;
 }
 
 export function range(items) {

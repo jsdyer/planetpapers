@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import {describe,groupSolutions,range} from "../web/model.mjs";
 test("missing, one-sided bounds and asymmetric uncertainty remain distinct", () => {
   assert.equal(describe(null),"Not reported");
-  assert.equal(describe([2,null,null,1]),"≤ 2 (upper limit)");
-  assert.equal(describe([2,null,null,-1]),"≥ 2 (lower limit)");
+  assert.equal(describe([2,null,null,1]),"< 2 (upper limit)");
+  assert.equal(describe([2,null,null,-1]),"> 2 (lower limit)");
+  assert.equal(describe([16.17,.64,-.64,-1]),"> 16.17 ± 0.64 (lower limit)");
   assert.equal(describe([0.772,.079,-.075,0]),"0.772 +0.079 / −0.075");
   assert.equal(describe([.62,.58,-.58,0]),"0.62 ± 0.58");
 });

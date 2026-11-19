@@ -88,13 +88,15 @@ def compress(path, data):
 
 
 def prepare(rows, out):
-    references, ref_ids, planets = [], {}, defaultdict(list)
+    references, ref_ids, urls, planets = [], {}, {}, defaultdict(list)
     for row in rows:
         markup = row["pl_refname"]
         if markup not in ref_ids:
             ref = Reference(markup)
-            ref_ids[markup] = len(references)
-            references.append(["".join(ref.fragments).strip(), ref.url])
+            if ref.url not in urls:
+                urls[ref.url] = len(references)
+                references.append(["".join(ref.fragments).strip(), ref.url])
+            ref_ids[markup] = urls[ref.url]
         solution = [ref_ids[markup], row["pl_pubdate"].split(" ")[0], int(row["default_flag"]), *[measurement(row, f) for f in PARAMETERS]]
         planets[row["pl_name"]].append(solution)
     if len(planets.get("TRAPPIST-1 e", [])) < 3 or len(planets) < 5000:
