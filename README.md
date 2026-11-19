@@ -1,115 +1,23 @@
-# CoolCode browser tool template
+# Planet Papers
 
-A starting point for independent tools at `coolcode.ca/<repo>/`: a working local-text
-example, responsive UI, Python standard-library build, Node tests, PR checks and Pages
-publication. No npm install is needed.
-
-## Using the example
+[Compare published exoplanet measurements](https://coolcode.ca/planetpapers/)
 
 <!-- coolcode:guide -->
-The first occurrence of each trimmed line keeps its place. Compare the output with the original text before copying the result.
+Select TRAPPIST-1 e and compare the mass estimates from Gillon (2017), Grimm (2018) and Agol (2021). The plot and table preserve each paper’s uncertainties, while the other solutions remain visible when that paper has no mass estimate.
 <!-- /coolcode:guide -->
 
-For a real tool, replace this paragraph with one or two plain-text sentences
-about an example, a limit or how to interpret the results. Keep the source,
-coverage, refresh behaviour and a worked example in this README as appropriate.
-When updating a tool, revise any details its behaviour has changed and keep the
-homepage's shorter data-source sentence in `tool.json` accurate.
-The hub imports the marked note into the catalogue README.
+## Coverage and sources
 
-## One-time template setup
+The NASA Exoplanet Archive's [Planetary Systems table (PS)](https://exoplanetarchive.ipac.caltech.edu/docs/API_TD_columns.html) retains separate literature solutions for each planet. This tool downloads the public [TAP table](https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+count%28%2A%29+as+n+from+ps&format=json) and indexes planets with two or more distinct reference URLs. Every included solution remains accessible. Some sources are archive catalogues or follow-up records. Links follow the Archive’s original references.
 
-Enable **Settings → General → Template repository** here. This repository does not
-need Pages enabled: its workflow builds/tests but intentionally skips deployment.
-New copies also skip deployment until `scripts/init.py` sets the tool ID to match
-their repository name. This lets you create the repo before configuring Pages.
+Choose planet mass, radius, orbital period, or minimum mass. Minimum mass uses the separate M sin i column. A paper’s failure to report a field appears as a missing value. Upper and lower limits keep their direction, and a missing error bar remains unknown. A reference can supply multiple solutions. The table combines identical values and error bounds from that same reference, and shows how many source rows they represent. Different values from the same source remain visible. Published values can depend on different models, observations or assumptions.
 
-## Start a new tool
+The precision list uses the earliest and latest distinct publication dates with positive values and a reported two-sided, nonzero uncertainty for the same field. Relative half-width is (upper error + absolute lower error) / (2 × value). The factor divides the earlier relative half-width by the later one. Tied endpoint dates with conflicting estimates are excluded. The list shows the 20 largest decreases per parameter. A narrower reported uncertainty does not establish greater accuracy. Papers can use different confidence conventions.
 
-1. Select **Use this template → Create a new repository**, choose owner `jsdyer`,
-   a unique lowercase name such as `my-tool`, and public visibility.
-2. Clone the new repository. Use Python 3.12+ and Node 24+.
-3. Set the identity, using a slug that matches the repository name:
+This research uses the NASA Exoplanet Archive, operated by the California Institute of Technology under contract with NASA under the Exoplanet Exploration Program. Cite [the Archive](https://doi.org/10.26133/NEA12) and the linked source papers. Search, selection and plotting run on the device. Source links open the cited provider.
 
-```sh
-python3 scripts/init.py my-tool --title "My Tool" --description "Describe what this tool does."
-```
+## Build and refresh
 
-Review the category, tags and icon in `tool.json`. `access: "browser"` tells the main
-catalogue that the tool works immediately without installation. `--owner` supports a different
-GitHub owner, but only projects owned by `jsdyer` inherit the CoolCode domain.
+Python 3.12 and Node build and test the app without application dependencies. `python3 scripts/refresh.py` retrieves the full PS row count and the measurement columns, verifies completeness and prepares a compressed source snapshot. A monthly or manually dispatched refresh job fetches and validates fresh data. The offline build `python3 scripts/build.py` expands the checked-in snapshot into static, on-demand planet groups. Retrieval dates record a successful source fetch. Publication dates come from the individual PS solution. Failed scheduled fetches leave the previous deployment available.
 
-4. Replace the example in `web/` and its tests. Update the privacy explanation,
-   source attribution and README to describe the real tool.
-5. Test and preview:
-
-```sh
-node --test tests/*.test.mjs
-python3 -m unittest discover -s tests -v
-python3 scripts/build.py
-python3 -m http.server 8000 --directory dist
-```
-
-Open `http://localhost:8000/`. The example trims lines, skips blanks and removes exact
-duplicates, preserving first-seen order and capitalization. It makes no API requests
-and does not persist text. Update that explanation if your app behaves differently.
-
-CI also tests the browser flow and mobile layout at a project subpath. Replace the
-sample assertions in `tests/browser_smoke.py` when implementing your own UI. To run
-that check locally (optional for ordinary preview):
-
-```sh
-python3 -m venv .venv
-. .venv/bin/activate
-python3 -m pip install -r tests/browser-requirements.txt
-python3 -m playwright install --with-deps chromium
-python3 tests/browser_smoke.py
-```
-
-Playwright is a test-only dependency; the app and its static build do not use it.
-
-## Publish and register
-
-When the actual tool is ready, in the **new tool repository** set **Settings → Pages → Build and deployment →
-Source → GitHub Actions**. Push to `main`, or manually run **Browser tool · Check and
-publish** after enabling Pages. If the initial deployment ran before Pages was enabled,
-enable it and rerun. PRs only check/build and provide a downloadable preview artifact.
-
-Keep asset paths and module imports relative. Check `https://coolcode.ca/my-tool/`.
-Do not add a CNAME or set `coolcode.ca` as this project's custom domain; the account
-site supplies it. Only successful `main` builds deploy.
-
-After verifying the app, copy the reviewed object from `tool.json` into `data/tools.json`
-in [the main site](https://github.com/jsdyer/jsdyer.github.io). Each tool still builds
-independently. Update the hub record when listing metadata changes; the hub is the
-authority for discovery. Ordinary app updates touch only this repository.
-
-The main site separates **Use in your browser** from **Install yourself**. An app
-that asks for a file is still a browser tool. Standalone Linux packages should start
-in their own repositories with their own build/release workflow, rather than copying
-this browser-only scaffold. Their hub record uses `access: "install"`, links to an
-installation guide, and includes `requirements`.
-
-## Files
-
-| Path | Purpose |
-| --- | --- |
-| `tool.json` | Page metadata and a ready-to-copy catalogue record |
-| `web/` | HTML, responsive CSS, DOM interactions and separate model logic |
-| `scripts/build.py` | Escape metadata and build `web/` into `dist/` |
-| `scripts/init.py` | Set a new project's identity |
-| `tests/` | Application and builder tests |
-| `.github/workflows/pages.yml` | Check PRs and publish successful main builds |
-| `AGENTS.md` | Instructions for future coding work |
-
-Namespace optional storage as `coolcode:<tool-id>:<key>`; CoolCode paths share a
-browser origin. Don't save pasted text/uploads by default. Document external APIs
-and send only the information needed for the selected action. Never embed secrets.
-
-Scheduled refresh is opt-in. Validate source data before deploying, display its date,
-and preserve the last good deployment on failure. Public-repository schedules can
-stop after 60 days without repository activity.
-
-Templates don't propagate future edits automatically. Adopt fixes explicitly and
-consider a versioned reusable workflow once several tools confirm the shared process.
-Choose and add the intended software license before distributing a new project.
+Run `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tests -v`, and `python3 scripts/build.py`. Run `python3 tests/browser_smoke.py` with Playwright Chromium installed, or set `CHROMIUM_PATH` to a compatible Chromium binary.
