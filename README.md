@@ -21,3 +21,11 @@ This research uses the NASA Exoplanet Archive, operated by the California Instit
 Python 3.12 and Node build and test the app without application dependencies. `python3 scripts/refresh.py` retrieves the full PS row count and the measurement columns, verifies completeness and prepares a compressed source snapshot. A monthly or manually dispatched refresh job fetches and validates fresh data. The offline build `python3 scripts/build.py` expands the checked-in snapshot into static, on-demand planet groups. Retrieval dates record a successful source fetch. Publication dates come from the individual PS solution. Failed scheduled fetches leave the previous deployment available.
 
 Run `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tests -v`, and `python3 scripts/build.py`. Run `python3 tests/browser_smoke.py` with Playwright Chromium installed, or set `CHROMIUM_PATH` to a compatible Chromium binary.
+
+<!-- schedule-reliability -->
+## Schedule reliability
+
+Public GitHub repositories can have scheduled workflows disabled after 60 days of inactivity. A separate weekly [schedule guard](.github/workflows/schedule-guard.yml) calls GitHub's enable-workflow API for an explicit list of refresh workflows and itself. It can restore workflows disabled for inactivity, preserves manually disabled workflows, and runs independently of collection failures.
+
+This is an interim mitigation, not a scheduling guarantee: GitHub does not document active-workflow renewal as a permanent exemption, and scheduled runs can be delayed or dropped. A scheduler on our own Linux server is the planned independent trigger. The guard does not collect data, create dummy commits, or change source/check timestamps; successful collection and published data freshness still need monitoring.
+<!-- /schedule-reliability -->
