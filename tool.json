@@ -34,5 +34,9 @@
         }
       }
     ]
+  },
+  "result_directory": {
+    "path": "records/",
+    "title": "Published exoplanet measurements by planet"
   }
 }

@@ -50,6 +50,28 @@ def main():
                 page.set_viewport_size({"width": 390, "height": 844})
                 assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
                 page.screenshot(path=str(screenshots / "mobile.png"), full_page=True)
+                page.get_by_role("link", name="Read the permanent comparison for TRAPPIST-1 e").click()
+                page.get_by_role("heading", name="TRAPPIST-1 e measurements").wait_for()
+                assert page.get_by_role("table").count() >= 2
+                assert page.get_by_role("link", name="Agol et al. 2021").first.get_attribute("href").startswith("https://")
+                assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+                page.screenshot(path=str(screenshots / "mobile-planet.png"), full_page=True)
+                page.get_by_role("link", name="View the radius chart").click()
+                assert page.locator("#metric").input_value() == "1"
+                assert page.locator("#planet").input_value() == "TRAPPIST-1 e"
+                assert "metric=radius" in page.url
+                page.reload()
+                page.get_by_text("Earth radii", exact=True).wait_for()
+                page.locator("#search").fill("55 Cnc e")
+                page.locator("#metric").select_option("2")
+                page.get_by_role("heading", name="55 Cnc e · Orbital period").wait_for()
+                assert "metric=orbital-period" in page.url
+                page.get_by_role("link", name="Browse published measurements by planet").click()
+                page.get_by_role("link", name="Orbital period", exact=True).click()
+                page.get_by_role("navigation", name="Result pages").get_by_role("link", name="2", exact=True).click()
+                page.locator(".planet-list li a").first.click()
+                assert page.url.endswith("#orbital-period")
+                assert page.get_by_role("heading", name="Orbital period in days").count() == 1
                 assert not errors, errors
                 browser.close()
             print("Browser checks passed: project subpath, source records, filters and mobile layout")

@@ -1,4 +1,7 @@
 import json
+import re
+from urllib.parse import urljoin, urlsplit
+from xml.etree import ElementTree as ET
 from pathlib import Path
 import shutil
 import sys
@@ -33,6 +36,41 @@ class BuildTests(unittest.TestCase):
         self.assertIn('href="./style.css"', page)
         self.assertFalse((self.root / "dist/private.txt").exists())
         self.assertTrue((self.root / "dist/.nojekyll").exists())
+
+    def test_permanent_records_are_reachable_from_browse_and_match_the_sitemap(self):
+        build(self.root)
+        site = self.root / "dist"
+        base = "https://coolcode.ca/planetpapers/"
+        namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        locations = [el.text for el in ET.parse(site / "sitemap.xml").findall("s:url/s:loc", namespace)]
+        self.assertEqual(len(locations), len(set(locations)))
+        self.assertTrue(all(url.startswith(base+"records/") for url in locations))
+        expected = {url[len(base):] for url in locations} - {""}
+        catalogue = json.loads((site / "data/catalogue.json").read_text())
+        profiles = {"records/planets/"+slug+"/" for slug in catalogue["profiles"].values()}
+        self.assertEqual(profiles, {p for p in expected if p.startswith("records/planets/")})
+        self.assertLess(len(profiles), len(catalogue["names"]))
+        seen, queue = set(), ["records/"]
+        while queue:
+            path = queue.pop()
+            if path in seen:
+                continue
+            seen.add(path)
+            body = (site / path / "index.html").read_text()
+            self.assertIn(f'<link rel="canonical" href="{base}{path}">', body)
+            if path in profiles:
+                continue  # All profiles must also be discoverable through the thematic directories.
+            for relative in re.findall(r'<a href="([^"]+)"', body):
+                url = urlsplit(urljoin(base+path, relative))
+                if url.hostname == 'coolcode.ca' and url.path.startswith('/planetpapers/records/'):
+                    queue.append(url.path[len('/planetpapers/'):])
+        self.assertEqual(seen, expected)
+        sample = (site / "records/planets/trappist-1-e/index.html").read_text()
+        self.assertIn('0.692 ± 0.022 Earth masses', sample)
+        self.assertIn('Gillon et al. 2017', sample)
+        self.assertIn('Agol et al. 2021', sample)
+        self.assertIn('metric=radius', sample)
+        self.assertIn('Other planets in the same papers', sample)
 
     def test_url_matches_tool_id(self):
         self.edit(url="/different/")

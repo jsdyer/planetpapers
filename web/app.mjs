@@ -45,6 +45,12 @@ async function start() {
   const [catalogue, info] = await Promise.all([get("catalogue"), get("index")]);
   const names = Object.keys(catalogue.names), loaded = new Map();
   const planet = el("planet"), metric = el("metric"), search = el("search");
+  const metricKeys = ["mass", "radius", "orbital-period", "minimum-mass"];
+  const query = new URLSearchParams(location.search);
+  const selected = query.get("planet");
+  const initialMetric = metricKeys.indexOf(query.get("metric"));
+  if (initialMetric >= 0) metric.value = String(initialMetric);
+  if (Object.hasOwn(catalogue.names, selected)) el("intro").textContent = "Compare the published values for " + selected + ", or search for another planet.";
   let revision = 0;
 
   async function render() {
@@ -57,12 +63,22 @@ async function start() {
     }));
     el("plot").replaceChildren();
     el("scale").replaceChildren();
-    el("archive").hidden = !name;
+    el("archive").hidden = true;
+    const profile = catalogue.profiles?.[name];
+    el("record").hidden = !profile;
+    if (profile) {
+      el("record").href = "./records/planets/" + profile + "/";
+      el("record").textContent = "Read the permanent comparison for " + name;
+    }
     if (!name) {
       el("title").textContent = "No matching planet";
       el("summary").textContent = "Try a shorter name or a different host star.";
       return;
     }
+    const state = new URL(location.href);
+    state.searchParams.set("planet", name);
+    state.searchParams.set("metric", metricKeys[field]);
+    history.replaceState(null, "", state);
     el("title").textContent = name + " · " + metrics[field][0];
     el("summary").textContent = "Loading source measurements…";
     const shard = catalogue.names[name];
@@ -73,6 +89,7 @@ async function start() {
       const items = groupSolutions(rows, catalogue.references, field), domain = range(items);
       const papers = new Set(items.map(it => it.url)).size;
       el("summary").textContent = rows.length + " published solutions · " + papers + " sources · " + items.filter(it => it.measure).length + " distinct source estimates in " + metrics[field][1];
+      el("archive").hidden = false;
       el("archive").href = "https://exoplanetarchive.ipac.caltech.edu/overview/" + encodeURIComponent(name);
       const axis = node("span", "", "scale");
       if (domain) axis.append(...domain.map(n => node("span",formatNumber(Number(n.toPrecision(5))))));
@@ -97,7 +114,6 @@ async function start() {
   planet.addEventListener("change", render);
   metric.addEventListener("change", render);
   el("stamp").textContent = "NASA Exoplanet Archive data retrieved " + info.retrieved + " · " + info.count.toLocaleString("en") + " solutions across " + info.planets.toLocaleString("en") + " planets with multiple sources.";
-  const selected = new URLSearchParams(location.search).get("planet");
   populate(Object.hasOwn(catalogue.names, selected) ? selected : "TRAPPIST-1 e");
 }
 start().catch(() => el("summary").textContent = "The planet catalogue could not be loaded. Reload to try again.");

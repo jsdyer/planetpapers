@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Build a browser tool using Python's standard library; no network required."""
+import ctypes
 import gzip
 from html import escape
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import tempfile
 from urllib.parse import urlsplit
+
+from records import publish
 
 ROOT = Path(__file__).resolve().parents[1]
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -15,10 +19,10 @@ SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 def metadata(root=ROOT):
     tool = json.loads((root / "tool.json").read_text(encoding="utf-8"))
-    required = {"id", "title", "description", "category", "tags", "icon", "url", "source", "hosting", "access", "data_info"}
+    required = {"id", "title", "description", "category", "tags", "icon", "url", "source", "hosting", "access", "data_info", "result_directory"}
     if not isinstance(tool, dict) or set(tool) != required:
         raise ValueError("tool.json has missing or unknown fields")
-    for key in required - {"tags", "data_info"}:
+    for key in required - {"tags", "data_info", "result_directory"}:
         if not isinstance(tool[key], str) or not tool[key].strip():
             raise ValueError(f"tool.json: {key} must be a nonempty string")
     if not SLUG.fullmatch(tool["id"]) or tool["url"] != f'/{tool["id"]}/' or tool["hosting"] != "project":
@@ -27,6 +31,9 @@ def metadata(root=ROOT):
         raise ValueError("tags must be an array of nonempty strings")
     if tool["access"] != "browser":
         raise ValueError("This starter produces an immediately usable browser tool; use access: browser")
+    directory = tool["result_directory"]
+    if not isinstance(directory, dict) or directory.get("path") != "records/" or not directory.get("title"):
+        raise ValueError("Expected the published planet records directory")
     info = tool["data_info"]
     if (not isinstance(info, dict) or info.get("mode") not in ("snapshot", "live", "local", "reference", "mixed")
             or not isinstance(info.get("detail"), str) or not info["detail"].strip()):
@@ -41,6 +48,32 @@ def metadata(root=ROOT):
     return tool
 
 
+def install(stage, output):
+    if not output.exists():
+        stage.rename(output)
+        return
+    # GitHub Pages builds on Linux. A directory exchange keeps the previous
+    # complete tree readable until the new tree is available, even on failure.
+    libc = ctypes.CDLL(None, use_errno=True)
+    if hasattr(libc, "renameat2"):
+        result = libc.renameat2(-100, os.fsencode(stage), -100, os.fsencode(output), 2)
+    elif hasattr(libc, "renamex_np"):
+        result = libc.renamex_np(os.fsencode(stage), os.fsencode(output), 2)
+    else:
+        # The Pages artifact is staged completely on these platforms as well.
+        previous = stage.parent / "previous"
+        output.rename(previous)
+        try:
+            stage.rename(output)
+        except OSError:
+            previous.rename(output)
+            raise
+        return
+    if result:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+
+
 def build(root=ROOT):
     tool = metadata(root)
     output = root / "dist"
@@ -49,7 +82,7 @@ def build(root=ROOT):
     web = root / "web"
     if web.is_symlink() or any(p.is_symlink() for p in web.rglob("*")):
         raise ValueError("web/ must not contain symlinks")
-    with tempfile.TemporaryDirectory(prefix="coolcode-tool-") as temporary:
+    with tempfile.TemporaryDirectory(prefix=".planetpapers-build-", dir=root) as temporary:
         stage = Path(temporary) / "site"
         shutil.copytree(web, stage)
         for archive in (stage / "data").glob("*.json.gz"):
@@ -67,10 +100,9 @@ def build(root=ROOT):
             raise ValueError("Unresolved template placeholder in web/index.html")
         index.write_text(page, encoding="utf-8")
         (stage / ".nojekyll").touch()
-        if output.exists():
-            shutil.rmtree(output)
-        shutil.copytree(stage, output)
-    print(f'Built dist/ for {tool["id"]}')
+        profiles, urls = publish(stage)
+        install(stage, output)
+    print(f'Built {profiles:,} planet comparison profiles and {urls:,} sitemap URLs for {tool["id"]}')
 
 
 if __name__ == "__main__":

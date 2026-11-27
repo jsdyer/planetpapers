@@ -13,6 +13,8 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 import zlib
 
+from records import slugs
+
 ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
 PARAMETERS = ("pl_masse", "pl_rade", "pl_orbper", "pl_msinie")
@@ -87,7 +89,7 @@ def compress(path, data):
     path.write_bytes(gzip.compress(encoded, mtime=0))
 
 
-def prepare(rows, out):
+def prepare(rows, out, previous_slugs=None):
     references, ref_ids, urls, planets = [], {}, {}, defaultdict(list)
     for row in rows:
         markup = row["pl_refname"]
@@ -113,6 +115,7 @@ def prepare(rows, out):
             factor = improvement(ordered, i)
             if factor:
                 ranking.append([name, round(factor, 4)])
+    compress(out / "planet-slugs.json.gz", slugs(multi, previous_slugs))
     compress(out / "catalogue.json.gz", dict(names=multi, references=references, rankings=[sorted(r, key=lambda x: -x[1])[:20] for r in summaries]))
     for shard, planets_in_shard in shards.items():
         compress(out / f"solutions-{shard}.json.gz", planets_in_shard)
@@ -131,7 +134,9 @@ def main():
     destination.mkdir(exist_ok=True)
     with TemporaryDirectory(dir=destination) as temporary:
         stage = Path(temporary)
-        prepare(rows, stage)
+        previous = destination / "planet-slugs.json.gz"
+        reserved = json.loads(gzip.decompress(previous.read_bytes())) if previous.exists() else {}
+        prepare(rows, stage, reserved)
         for file in stage.iterdir():
             file.replace(destination / file.name)
 

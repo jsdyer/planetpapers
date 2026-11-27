@@ -4,7 +4,10 @@
 
 <!-- coolcode:guide -->
 Select TRAPPIST-1 e and compare the mass estimates from Gillon (2017), Grimm (2018) and Agol (2021). The plot and table preserve each paper’s uncertainties, while the other solutions remain visible when that paper has no mass estimate.
+The permanent measurement records compare exoplanets with at least three dated references reporting the same parameter and at least two distinct central estimates. Browse mass, radius, orbital period or minimum mass. Each profile links directly to the individual references and opens the matching planet and parameter in the chart. Other planets are linked when their records cite the same paper.
 <!-- /coolcode:guide -->
+
+[Browse published measurements by planet](https://coolcode.ca/planetpapers/records/).
 
 ## Coverage and sources
 
@@ -18,7 +21,7 @@ This research uses the NASA Exoplanet Archive, operated by the California Instit
 
 ## Build and refresh
 
-Python 3.12 and Node build and test the app without application dependencies. `python3 scripts/refresh.py` retrieves the full PS row count and the measurement columns, verifies completeness and prepares a compressed source snapshot. A monthly or manually dispatched refresh job fetches and validates fresh data. The offline build `python3 scripts/build.py` expands the checked-in snapshot into static, on-demand planet groups. Retrieval dates record a successful source fetch. Publication dates come from the individual PS solution. Failed scheduled fetches leave the previous deployment available.
+Python 3.12 and Node build and test the app without application dependencies. `python3 scripts/refresh.py` retrieves the full PS row count and the measurement columns, verifies completeness and prepares a compressed source snapshot. The refresh is scheduled for 08:37 UTC on the fifth day of each month and also supports manual runs. Each successful build regenerates the permanent profiles, paginated directories and sitemap from the same snapshot. The offline build `python3 scripts/build.py` expands the checked-in snapshot into static, on-demand planet groups. Retrieval dates record a successful source fetch. Publication dates come from the individual PS solution. Failed scheduled fetches leave the previous deployment available.
 
 Run `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tests -v`, and `python3 scripts/build.py`. Run `python3 tests/browser_smoke.py` with Playwright Chromium installed, or set `CHROMIUM_PATH` to a compatible Chromium binary.
 
