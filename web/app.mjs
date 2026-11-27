@@ -107,7 +107,7 @@ async function start() {
     planet.replaceChildren(...matches.map(n => new Option(n,n)));
     if (matches.includes(preferred)) planet.value = preferred;
     else if (exact) planet.value = exact;
-    el("matches").textContent = matches.length.toLocaleString("en") + " planets match";
+    el("matches").textContent = matches.length === 1 ? "1 planet matches" : matches.length.toLocaleString("en") + " planets match";
     render();
   }
   search.addEventListener("input", () => populate(planet.value));
